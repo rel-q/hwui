@@ -1,0 +1,149 @@
+diff --git a/gn/BUILD.gn b/gn/BUILD.gn
+index 3573740f99..73ac7f70b5 100644
+--- a/gn/BUILD.gn
++++ b/gn/BUILD.gn
+@@ -147,7 +147,6 @@ config("default") {
+     cflags += [
+       "-fstrict-aliasing",
+       "-fPIC",
+-      "-Werror",
+     ]
+     cflags_cc += [
+       "-std=c++11",
+diff --git a/gn/BUILDCONFIG.gn b/gn/BUILDCONFIG.gn
+index 2b3ae33292..b6329a5178 100644
+--- a/gn/BUILDCONFIG.gn
++++ b/gn/BUILDCONFIG.gn
+@@ -11,11 +11,6 @@ declare_args() {
+   is_official_build = false
+   is_component_build = false
+   ndk = ""
+-  if (target_cpu == "x86" || target_cpu == "mipsel" || target_cpu == "arm") {
+-    ndk_api = 18
+-  } else {
+-    ndk_api = 21
+-  }
+   sanitize = ""
+ }
+ declare_args() {
+@@ -31,9 +26,9 @@ if (target_os == "") {
+     target_os = "android"
+   }
+ }
+-if (current_os == "") {
+-  current_os = target_os
+-}
++target_os = "mac"
++current_os = target_os
++assert(current_os == "mac")
+ 
+ is_android = current_os == "android"
+ is_fuchsia = current_os == "fuchsia"
+@@ -43,6 +38,8 @@ is_linux = current_os == "linux"
+ is_mac = current_os == "mac"
+ is_win = current_os == "win"
+ 
++assert(is_mac)
++
+ if (target_cpu == "") {
+   target_cpu = host_cpu
+   if (is_android || is_ios) {
+diff --git a/include/config/SkUserConfig.h b/include/config/SkUserConfig.h
+index 290a499c28..7ae836729e 100644
+--- a/include/config/SkUserConfig.h
++++ b/include/config/SkUserConfig.h
+@@ -4,7 +4,6 @@
+   #define GR_GL_CUSTOM_SETUP_HEADER "gl/GrGLConfig_chrome.h"
+   #define SKIA_DLL
+   #define SK_ALLOW_STATIC_GLOBAL_INITIALIZERS 0
+-  #define SK_BUILD_FOR_ANDROID_FRAMEWORK
+   #define SK_CODEC_DECODES_RAW
+   #define SK_DEFAULT_FONT_CACHE_LIMIT   (768 * 1024)
+   #define SK_DEFAULT_GLOBAL_DISCARDABLE_MEMORY_POOL_SIZE (512 * 1024)
+@@ -31,6 +30,5 @@
+   #define SK_SUPPORT_LEGACY_UNBALANCED_PIXELREF_LOCKCOUNT
+   #define SK_SUPPORT_PDF
+   #define SK_USE_FREETYPE_EMBOLDEN
+-  #define SK_VULKAN
+   #define SK_XML
+ #endif//SkUserConfig_DEFINED
+diff --git a/include/core/SkPaint.h b/include/core/SkPaint.h
+index caa5491fa2..7b5ea65897 100644
+--- a/include/core/SkPaint.h
++++ b/include/core/SkPaint.h
+@@ -121,14 +121,12 @@ public:
+ #endif
+     };
+ 
+-#ifdef SK_BUILD_FOR_ANDROID_FRAMEWORK
+     enum ReserveFlags {
+         // These are not used by paint, but the bits are reserved for private use by the
+         // android framework.
+         kUnderlineText_ReserveFlag   = 0x08,   //!< mask to enable underline text
+         kStrikeThruText_ReserveFlag  = 0x10,   //!< mask to enable strike-thru text
+     };
+-#endif
+ 
+     /** Return the paint's flags. Use the Flag enum to test flag values.
+         @return the paint's flags (see enums ending in _Flag for bit masks)
+diff --git a/include/utils/SkCamera.h b/include/utils/SkCamera.h
+index 3cb13fc19b..f07fc8b74e 100644
+--- a/include/utils/SkCamera.h
++++ b/include/utils/SkCamera.h
+@@ -128,12 +128,10 @@ public:
+     void rotateY(SkScalar deg);
+     void rotateZ(SkScalar deg);
+ 
+-#ifdef SK_BUILD_FOR_ANDROID
+     void setCameraLocation(SkScalar x, SkScalar y, SkScalar z);
+     SkScalar getCameraLocationX();
+     SkScalar getCameraLocationY();
+     SkScalar getCameraLocationZ();
+-#endif
+ 
+     void getMatrix(SkMatrix*) const;
+     void applyToCanvas(SkCanvas*) const;
+diff --git a/src/core/SkGlyph.h b/src/core/SkGlyph.h
+index 06c1d76fb3..3fd871a5c0 100644
+--- a/src/core/SkGlyph.h
++++ b/src/core/SkGlyph.h
+@@ -81,9 +81,7 @@ struct SkPackedID {
+ 
+ // FIXME - This is needed because the Android framework directly accesses fID.
+ // Remove when fID accesses are cleaned up.
+-#ifdef SK_BUILD_FOR_ANDROID_FRAMEWORK
+     operator uint32_t() const { return fID; }
+-#endif
+ 
+ private:
+     static unsigned ID2SubX(uint32_t id) {
+@@ -258,9 +256,7 @@ public:
+ 
+ // FIXME - This is needed because the Android frame work directly accesses fID.
+ // Remove when fID accesses are cleaned up.
+-#ifdef SK_BUILD_FOR_ANDROID_FRAMEWORK
+   public:
+-#endif
+     SkPackedGlyphID fID;
+ };
+ SK_END_REQUIRE_DENSE
+diff --git a/src/utils/SkCamera.cpp b/src/utils/SkCamera.cpp
+index cb364a504e..46f94399b8 100644
+--- a/src/utils/SkCamera.cpp
++++ b/src/utils/SkCamera.cpp
+@@ -334,7 +334,6 @@ void Sk3DView::restore() {
+     fRec = next;
+ }
+ 
+-#ifdef SK_BUILD_FOR_ANDROID
+ void Sk3DView::setCameraLocation(SkScalar x, SkScalar y, SkScalar z) {
+     // the camera location is passed in inches, set in pt
+     SkScalar lz = z * 72.0f;
+@@ -355,7 +354,6 @@ SkScalar Sk3DView::getCameraLocationY() {
+ SkScalar Sk3DView::getCameraLocationZ() {
+     return fCamera.fLocation.fZ / 72.0f;
+ }
+-#endif
+ 
+ void Sk3DView::translate(SkScalar x, SkScalar y, SkScalar z) {
+     fRec->fMatrix.preTranslate(x, y, z);

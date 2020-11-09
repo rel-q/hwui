@@ -177,7 +177,7 @@ void Typeface::setDefault(Typeface* face) {
 }
 
 void Typeface::setRobotoTypefaceForTest() {
-    const char* kRobotoFont = "/Library/Fonts/Verdana.ttf";
+    const char* kRobotoFont = "/System/Library/Fonts/PingFang.ttc";
 
     int fd = open(kRobotoFont, O_RDONLY);
     LOG_ALWAYS_FATAL_IF(fd == -1, "Failed to open file %s", kRobotoFont);
